@@ -1,0 +1,2 @@
+https://example.com/simple.png
+https://example.com/photo.jpg

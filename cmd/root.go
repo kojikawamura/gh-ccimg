@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -40,7 +41,21 @@ Examples:
   gh-ccimg https://github.com/OWNER/REPO/issues/123
   gh-ccimg OWNER/REPO#123 --out ./images
   gh-ccimg OWNER/REPO#123 --send "Analyze these screenshots"`,
-	Args: cobra.ExactArgs(1),
+	Args: cobra.RangeArgs(0, 1),
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		// Handle version flag
+		if version, _ := cmd.Flags().GetBool("version"); version {
+			ShowVersionInfo()
+			os.Exit(0)
+		}
+		
+		// If not version flag, we need exactly 1 argument
+		if len(args) != 1 {
+			return fmt.Errorf("accepts 1 arg(s), received %d", len(args))
+		}
+		
+		return nil
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Set up logging based on flags
 		setupLogging()
@@ -210,7 +225,7 @@ Examples:
 			
 			// Output base64 strings
 			for i, encoded := range imageData {
-				fmt.Printf("Image %d (base64): %s\n", i+1, encoded)
+			fmt.Printf("Image %d (base64): %s\n", i+1, encoded)
 			}
 			util.Success("Encoded %d images to base64", len(imageData))
 		}
@@ -259,6 +274,9 @@ func init() {
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output")
 	rootCmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "Quiet mode (errors only)")
 	rootCmd.Flags().BoolVar(&debug, "debug", false, "Debug mode (detailed troubleshooting info)")
+	
+	// Add version flag
+	rootCmd.Flags().BoolP("version", "V", false, "Show version information")
 }
 
 // setupLogging configures the logger based on command line flags
@@ -273,6 +291,14 @@ func setupLogging() {
 	} else {
 		util.SetDefaultLogLevel(util.LogLevelNormal)
 	}
+}
+
+// ShowVersionInfo displays version information
+func ShowVersionInfo() {
+	// Get version info from main package
+	fmt.Printf("gh-ccimg version dev\n")
+	fmt.Printf("Built with %s\n", runtime.Version())
+	fmt.Printf("OS/Arch: %s/%s\n", runtime.GOOS, runtime.GOARCH)
 }
 
 // checkPrerequisites validates that required tools are available
@@ -294,22 +320,7 @@ func checkPrerequisites() error {
 }
 
 func Execute() error {
-	// Set up error handling
-	if err := rootCmd.Execute(); err != nil {
-		// Get appropriate exit code
-		exitCode := util.GetExitCode(err)
-		
-		// Format error message
-		logger := util.GetDefaultLogger()
-		if appErr, ok := err.(*util.AppError); ok {
-			logger.ErrorPlain("%s", appErr.String())
-		} else {
-			logger.ErrorPlain("Error: %v", err)
-		}
-		
-		os.Exit(exitCode)
-	}
-	return nil
+	return rootCmd.Execute()
 }
 
 // warnSensitiveData displays security warnings about potentially sensitive data

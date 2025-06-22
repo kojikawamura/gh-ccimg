@@ -15,54 +15,65 @@ A GitHub CLI extension that extracts all images from GitHub issues and pull requ
 
 ### Prerequisites
 - [GitHub CLI](https://cli.github.com/) installed and authenticated
-- Go 1.21+ (for building from source)
-
-### Install from Source
-```bash
-git clone https://github.com/kojikawamura/gh-ccimg.git
-cd gh-ccimg
-go build -o gh-ccimg
-```
+  ```bash
+  gh auth login
+  ```
 
 ### Install as GitHub CLI Extension
 ```bash
-# After building
-gh extension install /path/to/gh-ccimg
+# Install from GitHub repository
+gh extension install kojikawamura/gh-ccimg
+
+# Or install locally after cloning
+git clone https://github.com/kojikawamura/gh-ccimg.git
+cd gh-ccimg
+gh extension install .
+```
+
+### Verify Installation
+```bash
+gh ccimg --version
+gh ccimg --help
 ```
 
 ## Quick Start
 
 ### Basic Usage
 ```bash
-# Extract images from an issue
-gh-ccimg owner/repo#123
+# Extract images from an issue (as GitHub extension)
+gh ccimg owner/repo#123
 
-# Extract from a PR using URL
-gh-ccimg https://github.com/owner/repo/pull/456
+# Extract from a PR using URL  
+gh ccimg https://github.com/owner/repo/pull/456
+
+# Or use standalone binary
+./gh-ccimg owner/repo#123
 ```
 
 ### Save to Disk
 ```bash
 # Save images to a directory
-gh-ccimg owner/repo#123 --out ./screenshots
+gh ccimg owner/repo#123 --out ./screenshots
 
 # With custom limits
-gh-ccimg owner/repo#123 --out ./images --max-size 50 --timeout 30
+gh ccimg owner/repo#123 --out ./images --max-size 50 --timeout 30
 ```
 
 ### Claude Integration
 ```bash
 # Send images directly to Claude for analysis
-gh-ccimg owner/repo#123 --send "What UI issues do you see in these screenshots?"
+gh ccimg owner/repo#123 --send "What UI issues do you see in these screenshots?"
 
 # Continue a Claude session
-gh-ccimg owner/repo#123 --send "Analyze the design patterns" --continue
+gh ccimg owner/repo#123 --send "Analyze the design patterns" --continue
 ```
 
 ## Command Reference
 
 ### Basic Command
 ```
+gh ccimg <target> [flags]
+# or
 gh-ccimg <target> [flags]
 ```
 
@@ -86,25 +97,25 @@ gh-ccimg <target> [flags]
 ### Extract and Analyze Screenshots
 ```bash
 # Perfect for UI/UX review
-gh-ccimg design-team/app#789 --send "Review these UI mockups for accessibility issues"
+gh ccimg design-team/app#789 --send "Review these UI mockups for accessibility issues"
 ```
 
 ### Bug Report Analysis
 ```bash
 # Download error screenshots for debugging
-gh-ccimg bugs/critical#101 --out ./bug-screenshots --max-size 10
+gh ccimg bugs/critical#101 --out ./bug-screenshots --max-size 10
 ```
 
 ### Documentation Images
 ```bash
 # Extract tutorial images
-gh-ccimg docs/wiki#42 --out ./tutorial-images --force
+gh ccimg docs/wiki#42 --out ./tutorial-images --force
 ```
 
 ### Performance Analysis
 ```bash
 # Analyze performance charts with Claude
-gh-ccimg performance/metrics#55 --send "What performance bottlenecks do these charts show?"
+gh ccimg performance/metrics#55 --send "What performance bottlenecks do these charts show?"
 ```
 
 ## Output Formats
@@ -164,7 +175,11 @@ When `--out` is specified, images are saved with numbered filenames:
 
 ### Getting Help
 ```bash
-gh-ccimg --help
+gh ccimg --help
+gh ccimg --version
+
+# Or with standalone binary
+./gh-ccimg --help
 ```
 
 ## Development
@@ -177,7 +192,7 @@ See [CLAUDE.md](CLAUDE.md) for development guidelines and build instructions.
 2. Create a feature branch
 3. Make your changes
 4. Add tests for new functionality
-5. Ensure all tests pass: `go test ./...`
+5. See [CLAUDE.md](CLAUDE.md) for development and testing procedures
 6. Submit a pull request
 
 ## License

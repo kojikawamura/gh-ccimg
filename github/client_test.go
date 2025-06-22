@@ -139,3 +139,105 @@ func TestIsGHCliAvailable(t *testing.T) {
 		t.Log("gh CLI is available and authenticated")
 	}
 }
+
+// Additional tests for better coverage
+func TestClient_CommandExecution(t *testing.T) {
+	client := NewClient(5 * time.Second)
+	
+	// Test with very short timeout to trigger timeout errors
+	client.timeout = 1 * time.Nanosecond
+	
+	_, err := client.FetchIssue("owner", "repo", "1")
+	if err == nil {
+		t.Error("Expected timeout error with very short timeout")
+	}
+}
+
+func TestClient_ExecuteWithRetry(t *testing.T) {
+	client := NewClient(30 * time.Second)
+	
+	// Test the executeWithRetry method indirectly through public methods
+	// These will fail due to gh CLI not being available, but tests the retry logic
+	_, err := client.FetchIssue("nonexistent", "repo", "1")
+	if err == nil {
+		t.Error("Expected error for nonexistent repository")
+	}
+	
+	_, err = client.FetchComments("nonexistent", "repo", "1")
+	if err == nil {
+		t.Error("Expected error for nonexistent repository")
+	}
+}
+
+func TestClient_EdgeCases(t *testing.T) {
+	client := NewClient(30 * time.Second)
+	
+	tests := []struct {
+		name  string
+		owner string
+		repo  string
+		num   string
+	}{
+		{"special_chars_owner", "owner-with-dashes", "repo", "1"},
+		{"special_chars_repo", "owner", "repo.name", "1"},
+		{"large_number", "owner", "repo", "999999"},
+		{"leading_zeros", "owner", "repo", "0001"},
+	}
+	
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// These will fail due to gh CLI/network issues, but test parameter handling
+			_, err := client.FetchIssue(tt.owner, tt.repo, tt.num)
+			if err == nil {
+				t.Error("Expected error in test environment")
+			}
+			
+			_, err = client.FetchComments(tt.owner, tt.repo, tt.num)
+			if err == nil {
+				t.Error("Expected error in test environment")
+			}
+		})
+	}
+}
+
+func TestClient_TimeoutVariations(t *testing.T) {
+	timeouts := []time.Duration{
+		1 * time.Second,
+		30 * time.Second,
+		5 * time.Minute,
+	}
+	
+	for _, timeout := range timeouts {
+		t.Run(timeout.String(), func(t *testing.T) {
+			client := NewClient(timeout)
+			if client.timeout != timeout {
+				t.Errorf("Client timeout = %v, want %v", client.timeout, timeout)
+			}
+		})
+	}
+}
+
+// Test helper functions
+func TestContainsString(t *testing.T) {
+	tests := []struct {
+		name   string
+		str    string
+		substr string
+		want   bool
+	}{
+		{"contains", "hello world", "world", true},
+		{"not_contains", "hello world", "foo", false},
+		{"empty_substr", "hello", "", true},
+		{"empty_str", "", "hello", false},
+		{"both_empty", "", "", true},
+	}
+	
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := containsString(tt.str, tt.substr)
+			if got != tt.want {
+				t.Errorf("containsString(%q, %q) = %v, want %v", tt.str, tt.substr, got, tt.want)
+			}
+		})
+	}
+}

@@ -1,0 +1,38 @@
+[
+  {
+    "id": 987654321,
+    "body": "Thanks for reporting this! I can reproduce the issue.\n\n![Reproduction](https://example.com/reproduction.png)\n\nHere's what I see in my environment:\n\n![My Environment](https://example.com/my-env.jpg)",
+    "user": {
+      "login": "maintainer",
+      "id": 54321,
+      "avatar_url": "https://avatars.githubusercontent.com/u/54321?v=4"
+    },
+    "created_at": "2023-01-15T11:00:00Z",
+    "updated_at": "2023-01-15T11:00:00Z",
+    "html_url": "https://github.com/test/repo/issues/123#issuecomment-987654321"
+  },
+  {
+    "id": 987654322,
+    "body": "I think I found the root cause. Here's a comparison:\n\n**Before:**\n![Before Fix](https://example.com/before.png)\n\n**After:**\n![After Fix](https://example.com/after.png)\n\nThe fix involves updating the CSS for the button component.",
+    "user": {
+      "login": "contributor",
+      "id": 67890,
+      "avatar_url": "https://avatars.githubusercontent.com/u/67890?v=4"
+    },
+    "created_at": "2023-01-15T14:30:00Z",
+    "updated_at": "2023-01-15T14:30:00Z",
+    "html_url": "https://github.com/test/repo/issues/123#issuecomment-987654322"
+  },
+  {
+    "id": 987654323,
+    "body": "This comment has no images, just text. Sometimes comments don't have any visual content and that should be handled properly by the image extraction process.",
+    "user": {
+      "login": "tester",
+      "id": 11111,
+      "avatar_url": "https://avatars.githubusercontent.com/u/11111?v=4"
+    },
+    "created_at": "2023-01-15T16:00:00Z",
+    "updated_at": "2023-01-15T16:00:00Z",
+    "html_url": "https://github.com/test/repo/issues/123#issuecomment-987654323"
+  }
+]

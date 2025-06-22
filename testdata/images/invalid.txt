@@ -1,0 +1,7 @@
+This is not an image file.
+It's just plain text that should be rejected by content type validation.
+
+Some additional content to make it larger:
+Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.

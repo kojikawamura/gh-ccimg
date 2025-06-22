@@ -321,3 +321,83 @@ func TestGetDefaultLogger(t *testing.T) {
 		t.Error("GetDefaultLogger should return the default logger instance")
 	}
 }
+
+// TestLogger_ErrorPlain tests the ErrorPlain function that has 0% coverage
+func TestLogger_ErrorPlain(t *testing.T) {
+	buf := &bytes.Buffer{}
+	logger := NewLogger(LogLevelNormal, buf)
+	
+	// Test ErrorPlain with various inputs
+	tests := []struct {
+		name   string
+		format string
+		args   []interface{}
+	}{
+		{"simple_message", "Error occurred", nil},
+		{"formatted_message", "Error: %s", []interface{}{"file not found"}},
+		{"multiple_args", "Error %d: %s", []interface{}{404, "not found"}},
+		{"empty_message", "", nil},
+	}
+	
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			buf.Reset()
+			if tt.args == nil {
+				logger.ErrorPlain(tt.format)
+			} else {
+				logger.ErrorPlain(tt.format, tt.args...)
+			}
+			
+			output := buf.String()
+			if tt.format != "" && output == "" {
+				t.Error("Expected output for ErrorPlain, got empty string")
+			}
+		})
+	}
+}
+
+// TestGlobalLoggerFunctions tests the global logger functions with 0% coverage
+func TestGlobalLoggerFunctions(t *testing.T) {
+	// Save original default logger
+	originalLogger := defaultLogger
+	
+	// Create a test logger with buffer at Debug level
+	buf := &bytes.Buffer{}
+	testLogger := NewLogger(LogLevelDebug, buf)
+	defaultLogger = testLogger
+	
+	defer func() {
+		// Restore original logger
+		defaultLogger = originalLogger
+	}()
+	
+	// Test global Verbose function
+	buf.Reset()
+	Verbose("Test verbose message")
+	if buf.String() == "" {
+		t.Error("Global Verbose function should produce output")
+	}
+	
+	// Test global Debug function  
+	buf.Reset()
+	Debug("Test debug message")
+	if buf.String() == "" {
+		t.Error("Global Debug function should produce output")
+	}
+	
+	// Test with quiet logger to ensure functions handle different log levels
+	quietLogger := NewLogger(LogLevelQuiet, buf)
+	defaultLogger = quietLogger
+	
+	buf.Reset()
+	Verbose("This should not appear")
+	if buf.String() != "" {
+		t.Error("Verbose should not produce output in quiet mode")
+	}
+	
+	buf.Reset()
+	Debug("This should not appear")
+	if buf.String() != "" {
+		t.Error("Debug should not produce output in quiet mode")
+	}
+}

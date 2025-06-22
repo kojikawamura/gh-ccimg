@@ -38,10 +38,14 @@ type AppError struct {
 
 // Error implements the error interface
 func (e *AppError) Error() string {
-	if e.OriginalErr != nil {
-		return fmt.Sprintf("%s: %v", e.Message, e.OriginalErr)
+	message := e.Message
+	if message == "" {
+		message = "unknown error"
 	}
-	return e.Message
+	if e.OriginalErr != nil {
+		return fmt.Sprintf("%s: %v", message, e.OriginalErr)
+	}
+	return message
 }
 
 // Unwrap returns the original error
@@ -199,6 +203,9 @@ func NewClaudeError(message string, originalErr error) *AppError {
 
 // GetExitCode returns the appropriate exit code for an error
 func GetExitCode(err error) int {
+	if err == nil {
+		return 0 // Success
+	}
 	if appErr, ok := err.(*AppError); ok {
 		return appErr.Code
 	}

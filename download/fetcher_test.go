@@ -257,3 +257,101 @@ func TestFetcher_FetchConcurrent_Context_Cancellation(t *testing.T) {
 		t.Error("Expected at least some timeout errors due to context cancellation")
 	}
 }
+
+// TestConsoleReporter tests the console progress reporter
+func TestConsoleReporter(t *testing.T) {
+	var buf bytes.Buffer
+	
+	tests := []struct {
+		name    string
+		verbose bool
+	}{
+		{"verbose_mode", true},
+		{"normal_mode", false},
+	}
+	
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			buf.Reset()
+			reporter := NewConsoleReporter(&buf, tt.verbose)
+			
+			if reporter == nil {
+				t.Fatal("NewConsoleReporter returned nil")
+			}
+			
+			// Test Start method
+			reporter.Start(3)
+			
+			// Test Update method - success case
+			reporter.Update(1, "http://example.com/image.png", true, nil)
+			
+			// Test Update method - failure case
+			reporter.Update(2, "http://example.com/bad-image.png", false, fmt.Errorf("download failed"))
+			
+			// Test Finish method
+			reporter.Finish()
+			
+			output := buf.String()
+			if output == "" {
+				t.Error("Expected console output, got empty string")
+			}
+			
+			// In verbose mode, should contain more details
+			if tt.verbose {
+				if !strings.Contains(output, "Starting download") {
+					t.Error("Verbose mode should contain 'Starting download'")
+				}
+				if !strings.Contains(output, "✓") {
+					t.Error("Verbose mode should contain success indicator")
+				}
+				if !strings.Contains(output, "✗") {
+					t.Error("Verbose mode should contain failure indicator")
+				}
+			}
+		})
+	}
+}
+
+// TestNoOpReporter tests the no-op progress reporter
+func TestNoOpReporter(t *testing.T) {
+	reporter := NewNoOpReporter()
+	
+	if reporter == nil {
+		t.Fatal("NewNoOpReporter returned nil")
+	}
+	
+	// Test all methods - they should not panic
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("NoOpReporter methods should not panic: %v", r)
+		}
+	}()
+	
+	reporter.Start(5)
+	reporter.Update(1, "http://example.com/image.png", true, nil)
+	reporter.Update(2, "http://example.com/bad-image.png", false, fmt.Errorf("error"))
+	reporter.Finish()
+}
+
+// TestFetcher_SetReporter tests the SetReporter method
+func TestFetcher_SetReporter(t *testing.T) {
+	fetcher := NewFetcher(1024*1024, 30*time.Second, 3)
+	
+	// Test with console reporter
+	var buf bytes.Buffer
+	consoleReporter := NewConsoleReporter(&buf, false)
+	fetcher.SetReporter(consoleReporter)
+	
+	// Test with no-op reporter
+	noOpReporter := NewNoOpReporter()
+	fetcher.SetReporter(noOpReporter)
+	
+	// Test with nil reporter (should not panic)
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("SetReporter with nil should not panic: %v", r)
+		}
+	}()
+	
+	fetcher.SetReporter(nil)
+}

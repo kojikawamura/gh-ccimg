@@ -295,3 +295,155 @@ func TestIsAuthError(t *testing.T) {
 		})
 	}
 }
+
+// Test all error types
+func TestAllErrorTypes(t *testing.T) {
+	tests := []struct {
+		name     string
+		createFn func() *AppError
+		wantType ErrorType
+		wantCode int
+	}{
+		{
+			name:     "validation error",
+			createFn: func() *AppError { return NewValidationError("test", "suggestion") },
+			wantType: ErrorTypeValidation,
+			wantCode: 1,
+		},
+		{
+			name:     "network error",
+			createFn: func() *AppError { return NewNetworkError("test", nil) },
+			wantType: ErrorTypeNetwork,
+			wantCode: 2,
+		},
+		{
+			name:     "filesystem error",
+			createFn: func() *AppError { return NewFileSystemError("test", nil) },
+			wantType: ErrorTypeFileSystem,
+			wantCode: 3,
+		},
+		{
+			name:     "auth error",
+			createFn: func() *AppError { return NewAuthError("test") },
+			wantType: ErrorTypeAuth,
+			wantCode: 4,
+		},
+		{
+			name:     "timeout error",
+			createFn: func() *AppError { return NewTimeoutError("test") },
+			wantType: ErrorTypeTimeout,
+			wantCode: 5,
+		},
+		{
+			name:     "security error",
+			createFn: func() *AppError { return NewSecurityError("test") },
+			wantType: ErrorTypeSecurity,
+			wantCode: 6,
+		},
+		{
+			name:     "claude error",
+			createFn: func() *AppError { return NewClaudeError("test", nil) },
+			wantType: ErrorTypeClaude,
+			wantCode: 7,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.createFn()
+			if err.Type != tt.wantType {
+				t.Errorf("Type = %v, want %v", err.Type, tt.wantType)
+			}
+			if err.Code != tt.wantCode {
+				t.Errorf("Code = %d, want %d", err.Code, tt.wantCode)
+			}
+			if err.Message == "" {
+				t.Error("Message should not be empty")
+			}
+		})
+	}
+}
+
+// Test error detection functions
+func TestErrorDetectionFunctions(t *testing.T) {
+	errors := map[string]*AppError{
+		"validation": NewValidationError("test", "test"),
+		"network":    NewNetworkError("test", nil),
+		"auth":       NewAuthError("test"),
+	}
+
+	tests := []struct {
+		name     string
+		checkFn  func(error) bool
+		shouldMatch string
+	}{
+		{"IsValidationError", IsValidationError, "validation"},
+		{"IsNetworkError", IsNetworkError, "network"},
+		{"IsAuthError", IsAuthError, "auth"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			for errType, err := range errors {
+				result := tt.checkFn(err)
+				expected := errType == tt.shouldMatch
+				if result != expected {
+					t.Errorf("%s(%s error) = %v, want %v", tt.name, errType, result, expected)
+				}
+			}
+		})
+	}
+}
+
+// Test GetExitCode with all error types
+func TestGetExitCodeAllTypes(t *testing.T) {
+	tests := []struct {
+		name     string
+		err      *AppError
+		wantCode int
+	}{
+		{"validation", NewValidationError("test", "test"), 1},
+		{"network", NewNetworkError("test", nil), 2},
+		{"filesystem", NewFileSystemError("test", nil), 3},
+		{"auth", NewAuthError("test"), 4},
+		{"timeout", NewTimeoutError("test"), 5},
+		{"security", NewSecurityError("test"), 6},
+		{"claude", NewClaudeError("test", nil), 7},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			code := GetExitCode(tt.err)
+			if code != tt.wantCode {
+				t.Errorf("GetExitCode() = %d, want %d", code, tt.wantCode)
+			}
+		})
+	}
+}
+
+// Test edge cases
+func TestErrorEdgeCases(t *testing.T) {
+	// Test nil error
+	code := GetExitCode(nil)
+	if code != 0 {
+		t.Errorf("GetExitCode(nil) = %d, want 0", code)
+	}
+
+	// Test regular Go error
+	regularErr := errors.New("regular error")
+	code = GetExitCode(regularErr)
+	if code != 1 {
+		t.Errorf("GetExitCode(regular error) = %d, want 1", code)
+	}
+
+	// Test error with empty message
+	appErr := NewValidationError("", "")
+	if appErr.Error() == "" {
+		t.Error("Error with empty message should still return non-empty string")
+	}
+
+	// Test error with nil unwrap
+	if appErr.Unwrap() != nil {
+		t.Error("Error with no original error should unwrap to nil")
+	}
+}

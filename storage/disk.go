@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // DiskStorage handles file-based storage of images
@@ -21,6 +22,25 @@ func NewDiskStorage(outputDir string, force bool) (*DiskStorage, error) {
 	
 	// Clean the path
 	cleanDir := filepath.Clean(outputDir)
+	
+	// Validate path for security (prevent traversal to sensitive locations)
+	absDir, err := filepath.Abs(cleanDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve absolute path: %w", err)
+	}
+	
+	// Check for suspicious paths that could be security risks (but allow temp directories)
+	suspiciousPaths := []string{"/etc", "/usr", "/bin", "/sbin", "/boot", "/sys", "/proc"}
+	for _, suspicious := range suspiciousPaths {
+		if strings.HasPrefix(absDir, suspicious) {
+			return nil, fmt.Errorf("invalid output directory: path %s is not allowed for security reasons", absDir)
+		}
+	}
+	
+	// Allow /var/folders (macOS temp) and /tmp but block other /var paths
+	if strings.HasPrefix(absDir, "/var") && !strings.HasPrefix(absDir, "/var/folders") && !strings.HasPrefix(absDir, "/var/tmp") {
+		return nil, fmt.Errorf("invalid output directory: path %s is not allowed for security reasons", absDir)
+	}
 	
 	// Create directory if it doesn't exist
 	if err := os.MkdirAll(cleanDir, 0755); err != nil {
