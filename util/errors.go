@@ -2,6 +2,7 @@ package util
 
 import (
 	"fmt"
+	"strings"
 )
 
 // ErrorType represents different types of errors in the application
@@ -22,6 +23,8 @@ const (
 	ErrorTypeTimeout
 	// ErrorTypeSecurity represents security-related errors
 	ErrorTypeSecurity
+	// ErrorTypeClaude represents Claude integration errors
+	ErrorTypeClaude
 )
 
 // AppError represents a structured application error
@@ -77,6 +80,23 @@ func NewValidationError(message, suggestion string) *AppError {
 // NewNetworkError creates a network error with suggestion
 func NewNetworkError(message string, originalErr error) *AppError {
 	suggestion := "Check your internet connection and try again"
+	
+	// Add more specific suggestions based on the error type
+	if originalErr != nil {
+		errStr := strings.ToLower(originalErr.Error())
+		if strings.Contains(errStr, "rate limit") {
+			suggestion = "GitHub API rate limit exceeded. Wait a few minutes before retrying, or use a GitHub token with higher limits"
+		} else if strings.Contains(errStr, "timeout") {
+			suggestion = "Request timed out. Try increasing the timeout with --timeout flag or check your network connection"
+		} else if strings.Contains(errStr, "authentication") || strings.Contains(errStr, "401") {
+			suggestion = "Authentication failed. Please run 'gh auth login' to authenticate with GitHub"
+		} else if strings.Contains(errStr, "not found") || strings.Contains(errStr, "404") {
+			suggestion = "Resource not found. Check that the repository and issue/PR number are correct and accessible"
+		} else if strings.Contains(errStr, "forbidden") || strings.Contains(errStr, "403") {
+			suggestion = "Access forbidden. You may not have permission to access this repository or resource"
+		}
+	}
+	
 	return &AppError{
 		Type:        ErrorTypeNetwork,
 		Message:     message,
@@ -89,6 +109,23 @@ func NewNetworkError(message string, originalErr error) *AppError {
 // NewFileSystemError creates a file system error with suggestion
 func NewFileSystemError(message string, originalErr error) *AppError {
 	suggestion := "Check file permissions and available disk space"
+	
+	// Add more specific suggestions based on the error type
+	if originalErr != nil {
+		errStr := strings.ToLower(originalErr.Error())
+		if strings.Contains(errStr, "permission denied") {
+			suggestion = "Permission denied. Check that you have write access to the target directory or run with appropriate permissions"
+		} else if strings.Contains(errStr, "no space left") {
+			suggestion = "Insufficient disk space. Free up some space or choose a different output directory"
+		} else if strings.Contains(errStr, "file exists") {
+			suggestion = "File already exists. Use --force flag to overwrite existing files"
+		} else if strings.Contains(errStr, "no such file or directory") {
+			suggestion = "Directory does not exist. Create the directory first or use a valid output path"
+		} else if strings.Contains(errStr, "is a directory") {
+			suggestion = "Target is a directory. Specify a file path or use a different name"
+		}
+	}
+	
 	return &AppError{
 		Type:        ErrorTypeFileSystem,
 		Message:     message,
@@ -111,7 +148,7 @@ func NewAuthError(message string) *AppError {
 
 // NewTimeoutError creates a timeout error with suggestion
 func NewTimeoutError(message string) *AppError {
-	suggestion := "Try increasing the timeout with --timeout flag or check your network connection"
+	suggestion := "Try increasing the timeout with --timeout flag (current default: 15s) or check your network connection. For large images, consider using --max-size to limit file sizes"
 	return &AppError{
 		Type:       ErrorTypeTimeout,
 		Message:    message,
@@ -122,12 +159,41 @@ func NewTimeoutError(message string) *AppError {
 
 // NewSecurityError creates a security error with suggestion
 func NewSecurityError(message string) *AppError {
-	suggestion := "This operation was blocked for security reasons"
+	suggestion := "This operation was blocked for security reasons. Review the security warnings and ensure you trust the data being processed"
 	return &AppError{
 		Type:       ErrorTypeSecurity,
 		Message:    message,
 		Suggestion: suggestion,
 		Code:       6,
+	}
+}
+
+// NewClaudeError creates a Claude integration error with suggestion
+func NewClaudeError(message string, originalErr error) *AppError {
+	suggestion := "Check that Claude CLI is installed and accessible. Run 'claude --version' to verify installation"
+	
+	// Add more specific suggestions based on the error type
+	if originalErr != nil {
+		errStr := strings.ToLower(originalErr.Error())
+		if strings.Contains(errStr, "not found") || strings.Contains(errStr, "command not found") {
+			suggestion = "Claude CLI not found. Install it from https://claude.ai/code or remove the --send flag"
+		} else if strings.Contains(errStr, "permission denied") {
+			suggestion = "Permission denied accessing Claude CLI. Check that the claude command is executable"
+		} else if strings.Contains(errStr, "authentication") || strings.Contains(errStr, "unauthorized") {
+			suggestion = "Claude authentication failed. Run 'claude auth login' or check your API credentials"
+		} else if strings.Contains(errStr, "timeout") {
+			suggestion = "Claude request timed out. The images may be too large or the service may be temporarily unavailable"
+		} else if strings.Contains(errStr, "rate limit") {
+			suggestion = "Claude rate limit exceeded. Wait a few minutes before retrying"
+		}
+	}
+	
+	return &AppError{
+		Type:        ErrorTypeClaude,
+		Message:     message,
+		Suggestion:  suggestion,
+		OriginalErr: originalErr,
+		Code:        7,
 	}
 }
 
